@@ -1,4 +1,4 @@
-# 🚀 ComplyGraph AI
+# 🚀 ComplyGraph
 ### Autonomous Cross-Border Compliance & E-Invoicing Agent
 
 [![DevNetwork Hackathon 2026](https://img.shields.io/badge/DevNetwork%20Hackathon-2026-blue)](https://api-cloud-ai-hackathon-2026.devpost.com/)
@@ -110,11 +110,14 @@ ComplyGraph AI is positioned as **"Compliance-as-a-Service"** for EU/Global SMEs
 ### 3. Frontend Setup
 ```bash
 # Clone the repository
-git clone https://github.com/your-team/complygraph-ai.git
-cd complygraph-ai/frontend
+git clone https://github.com/subair99/comply-graph.git
+cd comply-graph/frontend
 
 # Install dependencies
-npm install
+uv sync
+
+## Start your FastAPI server with hot-reloading:
+uv run uvicorn main:app --reload
 
 # Create .env.local file
 echo "NEXT_PUBLIC_XANO_API_URL=your_xano_url_here" > .env.local
@@ -139,10 +142,5 @@ Watch our 2.5-minute end-to-end walkthrough here: **[Link to YouTube/Loom Video]
 
 ---
 
-*Built with for the DevNetwork [API + Cloud + AI] Hackathon 2026.*
+*Built for the DevNetwork [API + Cloud + AI] Hackathon 2026.*
 ```
-
-### 💡 Tips for using this README:
-1. **Fill in the blanks:** Make sure to update the `git clone` URL, the Xano URL, and the Demo Video link before submitting.
-2. **Create the folders:** Actually create the `/sample-docs` and `/xano-schema-export.json` files in your repo. Judges *love* it when they can download the exact seed data you used in the video to test the app themselves.
-3. **Keep it clean:** Don't commit your `.env` files or `node_modules`. Add a standard `.gitignore` to your repo.
