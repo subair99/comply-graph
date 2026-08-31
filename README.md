@@ -30,25 +30,25 @@ ComplyGraph AI is a fully functional, end-to-end agentic pipeline that meaningfu
 │  User / UI   │ <---- │      Xano (Backend & State Machine)  │ ----> |   Audit Log / DB     │
 │  (React/TS)  │       │  - API Routing - Auth - Orchestration│       └──────────────────────┘
 └──────────────┘       └──────────────────────────────────────┘
-                                  │
-        ┌─────────────────────────┼─────────────────────────┐
-        ▼                         ▼                         ▼
-┌───────────────┐       ┌───────────────────┐       ┌───────────────┐
-│ Nutrient DWS  │       │     SerpApi       │       │   Doctavian   │
-│ (Extract/HITL)│       │ (Live Web Verify) │       │ (Complex Gen) │
-└───────────────┘       └───────────────────┘       └───────────────┘
-                                  │
-                                  ▼
-                       ┌─────────────────────┐
-                       │   Foxit MCP Server  │
-                       │ (Merge/OCR/Compress)│
-                       └─────────────────────┘
-                                  │
-                                  ▼ (Human Authorized)
-                       ┌─────────────────────┐
-                       │    Foxit eSign API  │
-                       │   (Secure Handoff)  │
-                       └─────────────────────┘
+                                          │
+                ┌─────────────────────────┼─────────────────────────┐
+                ▼                         ▼                         ▼
+        ┌───────────────┐       ┌───────────────────┐       ┌───────────────┐
+        │ Nutrient DWS  │       │     SerpApi       │       │   Doctavian   │
+        │ (Extract/HITL)│       │ (Live Web Verify) │       │ (Complex Gen) │
+        └───────────────┘       └───────────────────┘       └───────────────┘
+                                          │
+                                          ▼
+                               ┌─────────────────────┐
+                               │   Foxit MCP Server  │
+                               │ (Merge/OCR/Compress)│
+                               └─────────────────────┘
+                                         │
+                                         ▼ (Human Authorized)
+                               ┌─────────────────────┐
+                               │    Foxit eSign API  │
+                               │   (Secure Handoff)  │
+                               └─────────────────────┘
 ```
 
 ---
