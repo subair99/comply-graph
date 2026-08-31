@@ -120,7 +120,7 @@ uv sync
 uv run uvicorn main:app --reload
 
 # Create .env.local file
-echo "NEXT_PUBLIC_XANO_API_URL=your_xano_url_here" > .env.local
+cp .env.example .env
 
 # Run the development server
 npm run dev
