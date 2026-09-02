@@ -1,146 +1,178 @@
-# 🚀 ComplyGraph
-### Autonomous Cross-Border Compliance & E-Invoicing Agent
+#  ComplyGraph AI
+**Autonomous Cross-Border Compliance & E-Invoicing Agent**
 
-[![DevNetwork Hackathon 2026](https://img.shields.io/badge/DevNetwork%20Hackathon-2026-blue)](https://api-cloud-ai-hackathon-2026.devpost.com/)
-[![Overall Winner Track](https://img.shields.io/badge/Track-Overall%20Winner-orange)]()
-[![Sponsor Tracks](https://img.shields.io/badge/Sponsors-Nutrient%20%7C%20Foxit%20%7C%20SerpApi%20%7C%20Doctavian%20%7C%20Xano-green)]()
+ComplyGraph AI is an agentic pipeline that transforms messy supplier invoices into jurisdiction-compliant e-invoices (Factur-X/ZUGFeRD) and securely hands them off for human signature. Built to solve the upcoming 2026 EU e-invoicing mandates, it combines intelligent document extraction, live regulatory validation, and secure human-in-the-loop (HITL) handoffs.
 
-**ComplyGraph AI** transforms messy, unstructured cross-border trade documents into legally compliant, audit-ready e-invoices (e.g., France’s Sept 2026 Factur-X mandate). It combines real-time web validation, human-in-the-loop (HITL) review, and a secure, agent-orchestrated e-signature handoff to eliminate manual bottlenecks and prevent costly regulatory fines.
+![ComplyGraph Dashboard](sample-docs/ComplyGraph AI Dashboard.png)
+*(Replace the link above with a screenshot of your beautiful UI)*
 
 ---
 
-## 🎯 The Problem (Concept)
-Starting **September 1, 2026**, France’s B2B e-invoicing mandate requires all businesses to issue and receive compliant e-invoices (Factur-X/ZUGFeRD). Simultaneously, cross-border trade faces intense scrutiny under GDPR and EU AI Act rules. 
+## Key Features
 
-SMEs currently rely on manual audits of messy PDF invoices, packing lists, and contracts. This creates severe operational latency, high error rates, and exposure to multi-million dollar regulatory fines. Existing tools are either dumb templates or overly complex, expensive enterprise ERPs.
+1. **Intelligent Ingestion (Milestone 1):** Uses Nutrient DWS to extract structured data from messy PDFs, complete with confidence scoring.
+2. **Live Regulatory Validation (Milestone 2):** Automatically detects low-confidence fields (like VAT IDs) and triggers SerpApi to cross-reference live web registries.
+3. **Jurisdiction Branching Logic (Milestone 3):** Uses Jinja2 to dynamically generate Factur-X compliant XML payloads, applying specific tax rules (e.g., 20% VAT for France, 19% for Germany).
+4. **Secure Agentic Handoff (Milestone 4):** Prepares the document via Foxit eSign API but **intentionally halts** execution, returning control to the human for the legally binding signature to maintain non-repudiation.
 
-## 💡 The Solution (Progress)
-ComplyGraph AI is a fully functional, end-to-end agentic pipeline that meaningfully integrates 5 sponsor technologies to automate this exact workflow:
+---
 
-1. **Ingestion & Extraction:** User uploads a messy document bundle (PDF invoice + bill of lading).
-2. **Deterministic Extraction (Nutrient DWS):** Parses documents into structured JSON with confidence scores and coordinate grounding.
-3. **Live Regulatory Validation (SerpApi):** An AI agent cross-references extracted Supplier VAT IDs against live web registries to auto-fill or flag suspicious data.
-4. **Human-in-the-Loop (Nutrient Viewer + Doctavian):** Low-confidence fields are paused for human review. Once approved, Doctavian’s branching logic templates generate the precise, jurisdiction-compliant document structure.
-5. **Reversible Prep (Foxit MCP):** The agent uses Foxit’s 40+ MCP tools to merge cover letters, OCR scanned pages, and attach the Factur-X XML payload.
-6. **The Secure Handoff (Foxit eSign):** The agent *stops*. Upon human approval, the agent makes the direct API call to Foxit eSign, but the *human* executes the actual signature.
+## Project Structure
 
-### 🏗️ System Architecture
+Here is the complete project structure for your **ComplyGraph AI** application, organized by the backend and frontend we built. 
+
 ```text
-┌──────────────┐       ┌──────────────────────────────────────┐       ┌──────────────────────┐
-│  User / UI   │ <---- │      Xano (Backend & State Machine)  │ ----> |   Audit Log / DB     │
-│  (React/TS)  │       │  - API Routing - Auth - Orchestration│       └──────────────────────┘
-└──────────────┘       └──────────────────────────────────────┘
-                                          │
-                ┌─────────────────────────┼─────────────────────────┐
-                ▼                         ▼                         ▼
-        ┌───────────────┐       ┌───────────────────┐       ┌───────────────┐
-        │ Nutrient DWS  │       │     SerpApi       │       │   Doctavian   │
-        │ (Extract/HITL)│       │ (Live Web Verify) │       │ (Complex Gen) │
-        └───────────────┘       └───────────────────┘       └───────────────┘
-                                          │
-                                          ▼
-                               ┌─────────────────────┐
-                               │   Foxit MCP Server  │
-                               │ (Merge/OCR/Compress)│
-                               └─────────────────────┘
-                                         │
-                                         ▼ (Human Authorized)
-                               ┌─────────────────────┐
-                               │    Foxit eSign API  │
-                               │   (Secure Handoff)  │
-                               └─────────────────────┘
+comply-graph-project/
+│
+├── .env                         # API keys and Supabase credentials (DO NOT COMMIT to GitHub)
+├── README.md                    # Professional project documentation for judges
+│
+├── comply-graph/                # 🐍 Python FastAPI Backend
+│   ├── main.py                  # Core orchestration, 4 API endpoints, Jinja2 logic, and Supabase integration
+│   ├── pyproject.toml           # Python dependencies (managed via uv)
+│   └── sample-docs/             # Test files for the demo
+│       └── messy_supplier_invoice.pdf
+│
+└── comply-graph-ui/             # ⚛️ Next.js Frontend
+    ├── package.json             # Node dependencies (Next.js, React, Lucide icons)
+    ├── tailwind.config.js       # Tailwind CSS v3 configuration
+    ├── postcss.config.js        # PostCSS configuration for Tailwind
+    └── src/
+        └── app/
+            ├── layout.tsx       # Root layout with metadata and Inter font
+            ├── page.tsx         # Main dashboard UI, state management, and API fetch logic
+            └── globals.css      # Tailwind directives (@tailwind base, etc.)
 ```
 
 ---
 
-## 🛡️ The "Handoff Defense" (Foxit Challenge Design)
-*Why doesn't the agent just sign the document itself?*
+## System Architecture
 
-In regulated document workflows, **non-repudiation and legal liability** are paramount. While our agent can autonomously generate, format, and prepare the document via the Foxit MCP server, the act of signing is intentionally designed as a **human-in-the-loop boundary**. 
-
-The agent triggers the Foxit eSign API *only after* explicit user authorization in the UI. This ensures the human retains legal agency over the final commitment, perfectly satisfying Foxit's requirement that the agent handles the upstream reversible work, while the human handles the irreversible commitment.
+```mermaid
+graph TD
+    A[User Uploads PDF] --> B(FastAPI Orchestrator)
+    B --> C{Nutrient DWS}
+    C -->|Extracted JSON + Confidence| D[Supabase Database]
+    D --> E{Confidence < 0.85?}
+    E -->|Yes| F{SerpApi Live Validation}
+    E -->|No| G[Jinja2 Factur-X Generator]
+    F -->|Human Approves| G
+    G -->|Compliant XML| H[Foxit eSign API]
+    H -->|Envelope Created| I[Agent HALTS]
+    I --> J[Human Executes Signature]
+```
 
 ---
 
-## 🏆 Sponsor Alignment & Integration Depth
+## ️Tech Stack
 
-| Sponsor | Challenge Track | How We Used It Meaningfully |
+- **Backend Orchestration:** Python, FastAPI, httpx
+- **Frontend UI:** Next.js 14, React, Tailwind CSS, Lucide Icons
+- **Database & State:** Supabase (PostgreSQL)
+- **Document AI:** Nutrient DWS (Extraction API)
+- **Live Web Search:** SerpApi (Google Search API)
+- **Template Engine:** Jinja2 (Factur-X Branching Logic)
+- **eSignature:** Foxit eSign API
+
+---
+
+## Sponsor Challenge Alignment
+
+| Sponsor | Challenge Requirement | How ComplyGraph Solves It |
 | :--- | :--- | :--- |
-| **Nutrient** | Turn Documents Into Trust | Used DWS Data Extraction for confidence-scored parsing, embedded the DWS Viewer for the HITL review loop, and generated a deterministic audit trail. |
-| **Foxit** | Your Agent Shouldn't Sign That | Used the MCP server for reversible PDF prep (merge/OCR/compress). Designed the explicit "Stop & Handoff" UI for the eSign API. |
-| **SerpApi** | Best AI Use Case | Used live web search to cross-reference extracted VAT IDs against official EU registries, surfacing deltas for the user to approve. |
-| **Doctavian**| Generate It Right | Used branching logic templates to handle complex EU vs. Non-EU tax rules, turning messy JSON into a compliant Factur-X structure. |
-| **Xano** | Rebuild a SaaS Tool You Hate | Xano is the central nervous system. It powers the state machine, API routing, database, and hosts the frontend via static hosting. |
+| **Nutrient** | Intelligent Document Processing | Extracts messy PDFs into structured JSON with granular confidence scores. |
+| **SerpApi** | Live Data Enrichment | Validates low-confidence VAT IDs against live EU web registries. |
+| **Foxit** | Secure Agent Handoff | Agent prepares the envelope via API but **halts before signing**, preserving human legal agency. |
+| **Supabase** | State Management | Tracks the job lifecycle from `pending` → `extracted` → `under_review` → `ready_to_sign`. |
 
 ---
 
-## 💰 Business Model & Feasibility (Startup Potential)
-ComplyGraph AI is positioned as **"Compliance-as-a-Service"** for EU/Global SMEs. 
-*   **Target Market:** 23 million SMEs in the EU impacted by the 2026 e-invoicing mandates.
-*   **Pricing:** $49/month base subscription (includes 50 documents) + $2 per additional document.
-*   **Scalability:** Built on serverless infrastructure (Xano) and stateless API orchestration, allowing infinite horizontal scaling without backend refactoring.
-
----
-
-## 🛠️ Tech Stack
-*   **Frontend:** React, TypeScript, TailwindCSS (Hosted on Xano Static Hosting)
-*   **Backend & Orchestration:** Xano (No-code/Pro-code hybrid backend, State Machine, Database)
-*   **Document Intelligence:** Nutrient DWS API, Nutrient Web Viewer
-*   **Live Data:** SerpApi (Google Search API)
-*   **Document Generation:** Doctavian API
-*   **PDF Manipulation:** Foxit PDF Services via MCP Server
-*   **E-Signature:** Foxit eSign API
-
----
-
-## 🚀 Getting Started (Local Development)
+## ⚡ Quick Start Guide
 
 ### 1. Prerequisites
-*   Node.js v18+
-*   A Xano account (Essential Plan)
-*   API Keys for Nutrient, SerpApi, Doctavian, and Foxit.
+- Python 3.10+ and `uv` (or `pip`)
+- Node.js 18+ and `npm`
+- A Supabase project
+- API Keys for Nutrient, SerpApi, and Foxit
 
-### 2. Backend Setup (Xano)
-1. Create a new Workspace in Xano.
-2. Import the database schema from `/xano-schema-export.json` (Creates `Jobs`, `Documents`, and `AuditLog` tables).
-3. Create the API Endpoints for `Upload`, `Extract`, `Validate`, and `Trigger_eSign`.
-4. Add your API keys to the Xano Environment Variables.
-5. Deploy the Xano API and copy the base URL.
-
-### 3. Frontend Setup
+### 2. Backend Setup (FastAPI)
 ```bash
 # Clone the repository
-git clone https://github.com/subair99/comply-graph.git
-cd comply-graph/frontend
+git clone https://github.com/your-username/comply-graph.git
+cd comply-graph
+
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
-uv sync
+pip install fastapi uvicorn httpx python-dotenv jinja2 supabase python-multipart
 
-## Start your FastAPI server with hot-reloading:
-uv run uvicorn main:app --reload
-
-# Create .env.local file
+# Configure environment variables
 cp .env.example .env
+# Edit .env and add your API keys (DWS_EXTRACTION_API_KEY, SERPAPI_API_KEY, SUPABASE_URL, SUPABASE_KEY, FOXIT_CLIENT_ID, FOXIT_CLIENT_SECRET)
+
+# Run the backend server
+uvicorn main:app --reload --port 8000
+```
+
+### 3. Frontend Setup (Next.js)
+```bash
+cd comply-graph-ui
+
+# Install dependencies
+npm install
 
 # Run the development server
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000) to see the dashboard.
 
 ---
 
-## 📂 Seed Data
-To test the pipeline exactly as shown in the demo video, use the messy documents provided in the `/sample-docs` directory:
-*   `messy_supplier_invoice.pdf` (Contains a slightly blurry VAT ID to trigger SerpApi validation)
-*   `bill_of_lading_scan.jpg` (Requires OCR via Foxit MCP)
-*   `approved_factur_x_template.json` (Expected output from Doctavian)
+##  API Documentation
 
----
+The backend exposes 4 core endpoints at `http://localhost:8000`:
 
-## 🎥 Demo Video
-Watch our 2.5-minute end-to-end walkthrough here: **[Link to YouTube/Loom Video]**
-
----
-
-*Built for the DevNetwork [API + Cloud + AI] Hackathon 2026.*
+### 1. Ingest & Extract
+```bash
+curl -X POST 'http://127.0.0.1:8000/api/v1/ingest-and-extract' \
+  -F 'file=@sample-docs/messy_supplier_invoice.pdf'
 ```
+*Returns extracted JSON, confidence scores, and a `job_id`.*
+
+### 2. Validate VAT (HITL)
+```bash
+curl -X POST 'http://127.0.0.1:8000/api/v1/validate-vat' \
+  -H 'Content-Type: application/json' \
+  -d '{"vat_id": "", "supplier_name": "CONTOSO LTD.", "country_code": "US"}'
+```
+*Returns live search results from SerpApi.*
+
+### 3. Generate Compliant Document
+```bash
+curl -X POST 'http://127.0.0.1:8000/api/v1/generate-compliant-document' \
+  -H 'Content-Type: application/json' \
+  -d '{"extracted_data": {...}, "jurisdiction": "FR", "approved_by_human": true}'
+```
+*Returns a Factur-X compliant XML payload.*
+
+### 4. Foxit Secure Handoff
+```bash
+curl -X POST 'http://127.0.0.1:8000/api/v1/foxit-prepare-and-handoff' \
+  -H 'Content-Type: application/json' \
+  -d '{"job_id": 1, "document_id": "doc_1", "compliant_xml_payload": "...", "signer_email": "user@test.com", "human_approved_for_signing": true}'
+```
+*Creates the Foxit envelope and returns the signing URL. **The agent halts here.***
+
+---
+
+## Demo Video
+
+[![Watch the Demo Video](https://via.placeholder.com/600x300.png?text=Click+to+Watch+Demo)](https://www.youtube.com/watch?v=YOUR_VIDEO_ID)
+*(Replace with your actual Loom/YouTube link)*
+
+---
+
+##  License
+MIT License. Built for the 2026 API & Cloud AI Hackathon.
