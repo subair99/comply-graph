@@ -330,66 +330,115 @@ async def generate_compliant_document(request: DocumentGenerationRequest):
 
 @app.post("/api/v1/foxit-prepare-and-handoff", response_model=FoxitHandoffResponse)
 async def foxit_prepare_and_handoff(request: FoxitHandoffRequest):
-    """MILESTONE 4: Foxit Document Generation & Secure Handoff. Updates Supabase upon completion."""
+    """
+    MILESTONE 4: Foxit Document Generation & Real eSign Handoff.
+    Creates a real Foxit eSign envelope and halts for human execution.
+    """
     if not request.human_approved_for_signing:
         raise HTTPException(status_code=403, detail="Agent halted: Explicit human approval required for eSign handoff.")
 
     agent_action_log = []
+    
+    foxit_client_id = os.getenv("FOXIT_CLIENT_ID")
+    foxit_client_secret = os.getenv("FOXIT_CLIENT_SECRET")
+
+    if not foxit_client_id or not foxit_client_secret:
+        raise HTTPException(status_code=500, detail="Foxit credentials not configured in .env file")
 
     try:
-        foxit_data_payload = json.dumps({
-            "SupplierName": request.document_id.replace("doc_", "").replace("_", " ").upper(),
-            "VAT_ID": "FR123456789", 
-            "TotalAmount": "15000.00",
-            "FacturX_XML_Attachment": request.compliant_xml_payload
-        })
+        # Split signer name for Foxit's required first/last name fields
+        name_parts = request.signer_name.split(" ", 1)
+        first_name = name_parts[0]
+        last_name = name_parts[1] if len(name_parts) > 1 else "Signer"
 
-        files = {
-            "template": ("sample-invoice.docx", b"Mock DOCX Template Content", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
-            "data": (None, foxit_data_payload, "application/json")
+        # 1. Prepare the REAL Foxit eSign API payload
+        # Note: For the demo, we use Foxit's sample PDF URL to guarantee API success. 
+        # In production, you would upload the generated compliant PDF to a storage bucket and use that URL.
+        esign_payload = {
+            "folderName": f"Compliance Invoice - {request.document_id}",
+            "inputType": "url",
+            "fileUrls": [
+                "https://app.developer-api.foxit.com/esign/foxit-esign-api-sample.pdf"
+            ],
+            "fileNames": [
+                f"{request.document_id}_compliant.pdf"
+            ],
+            "parties": [
+                {
+                    "firstName": first_name,
+                    "lastName": last_name,
+                    "emailId": request.signer_email,
+                    "permission": "FILL_FIELDS_AND_SIGN",
+                    "sequence": 1
+                }
+            ],
+            "fields": [
+                {
+                    "type": "signature",
+                    "x": 336,
+                    "y": 578,
+                    "width": 170,
+                    "height": 28,
+                    "documentNumber": 1,
+                    "pageNumber": 1,
+                    "tabOrder": 1,
+                    "party": 1,
+                    "required": True
+                }
+            ],
+            "processTextTags": False,
+            "processAcroFields": False,
+            "createEmbeddedSigningSession": False,
+            "createEmbeddedSendingSession": False,
+            "sendNow": True  # Triggers the email to the signer immediately
         }
 
         headers = {
-            "client_id": FOXIT_CLIENT_ID,
-            "client_secret": FOXIT_CLIENT_SECRET
+            "client_id": foxit_client_id,
+            "client_secret": foxit_client_secret,
+            "Content-Type": "application/json",
         }
 
-        agent_action_log.append("MCP Tool: Calling Foxit Document Generation API to embed Factur-X XML.")
+        agent_action_log.append("MCP Tool: Calling Foxit eSign API to create envelope.")
         
+        # 2. Execute the REAL Foxit eSign API Call
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
-                FOXIT_GENERATE_URL,
+                "https://na1.fusion.foxit.com/esign/api/v1/folders/createfolder",
                 headers=headers,
-                files=files
+                json=esign_payload
             )
             
-            if response.status_code in [200, 201]:
-                agent_action_log.append("Foxit API: Document generated and XML embedded successfully.")
-                generated_doc_url = "https://storage.complygraph.ai/docs/final_compliant_invoice.pdf"
+            agent_action_log.append(f"Foxit eSign API Status: {response.status_code}")
+            
+            if response.status_code in [200, 201, 202]:
+                result = response.json()
+                folder_id = result.get("folderId", result.get("id", "unknown"))
+                agent_action_log.append(f"Foxit eSign API: Envelope created successfully! Folder ID: {folder_id}")
+                
+                # Since sendNow=True, Foxit emails the signer. We provide a generic dashboard link for the demo UI.
+                signing_url = "https://app.foxitsign.com/login"
+                
+                # 3. Update Supabase with the real envelope ID
+                update_job_status(
+                    job_id=request.job_id,
+                    compliant_xml_payload=request.compliant_xml_payload,
+                    foxit_envelope_id=folder_id,
+                    foxit_signing_url=signing_url,
+                    status="ready_to_sign"
+                )
+
+                return FoxitHandoffResponse(
+                    status="success",
+                    envelope_id=folder_id,
+                    agent_action_log=agent_action_log,
+                    signing_url=signing_url,
+                    agent_status="halted_awaiting_human_signature",
+                    message=f"Agent has created the eSign envelope (ID: {folder_id}) and triggered the signature request to {request.signer_email}. The agent has STOPPED. The human must now check their email or use the Foxit dashboard to execute the legally binding signature."
+                )
             else:
-                agent_action_log.append(f"Foxit API: Returned {response.status_code}. Falling back to mock demo mode.")
-                generated_doc_url = "https://mock.complygraph.ai/demo_invoice.pdf"
-
-        mock_envelope_id = f"env_{request.document_id.replace(' ', '_')}"
-        signing_url = f"https://app.foxitsign.com/sign/{mock_envelope_id}?token=human_only_execution_token"
-
-        # UPDATE SUPABASE WITH FINAL HANDOFF DATA
-        update_job_status(
-            job_id=request.job_id,
-            compliant_xml_payload=request.compliant_xml_payload,
-            foxit_envelope_id=mock_envelope_id,
-            foxit_signing_url=signing_url,
-            status="ready_to_sign"
-        )
-
-        return FoxitHandoffResponse(
-            status="success",
-            envelope_id=mock_envelope_id,
-            agent_action_log=agent_action_log,
-            signing_url=signing_url,
-            agent_status="halted_awaiting_human_signature",
-            message="Agent has prepared the document via Foxit and attached the Factur-X XML. The agent has STOPPED. The human must now click the signing_url to execute the legally binding signature."
-        )
+                agent_action_log.append(f"Foxit eSign API Error: {response.text}")
+                raise HTTPException(status_code=response.status_code, detail=f"Foxit eSign Error: {response.text}")
 
     except httpx.RequestError as exc:
         raise HTTPException(status_code=500, detail=f"Network error connecting to Foxit: {str(exc)}")
