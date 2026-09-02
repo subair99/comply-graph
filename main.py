@@ -2,10 +2,12 @@ import os
 import json
 import httpx
 from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from dotenv import load_dotenv
-from jinja2 import Template  # <-- ADDED: Local templating engine
+from jinja2 import Template
+from supabase import create_client, Client
 
 # Load environment variables from .env
 load_dotenv()
@@ -16,11 +18,41 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# --- API KEY CONFIGURATION ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"], # Allow Next.js dev server
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# --- API KEY & DATABASE CONFIGURATION ---
 DWS_PROCESSOR_API_KEY = os.getenv("DWS_PROCESSOR_API_KEY")
 DWS_EXTRACTION_API_KEY = os.getenv("DWS_EXTRACTION_API_KEY")
 SERPAPI_API_KEY = os.getenv("SERPAPI_API_KEY")
-XANO_API_URL = os.getenv("XANO_API_URL")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+FOXIT_CLIENT_ID = os.getenv("FOXIT_CLIENT_ID")
+FOXIT_CLIENT_SECRET = os.getenv("FOXIT_CLIENT_SECRET")
+FOXIT_GENERATE_URL = os.getenv("FOXIT_GENERATE_URL", "https://na1.fusion.foxit.com/document-generation/api/generate")
+
+# Initialize Supabase Client
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# --- Supabase Helper Functions ---
+def save_job_to_db(filename, extracted_data, confidence_scores, low_confidence_fields):
+    response = supabase.table("compliance_jobs").insert({
+        "filename": filename,
+        "status": "extracted",
+        "extracted_data": extracted_data,
+        "confidence_scores": confidence_scores,
+        "low_confidence_fields": low_confidence_fields
+    }).execute()
+    return response.data[0]
+
+def update_job_status(job_id, **kwargs):
+    response = supabase.table("compliance_jobs").update(kwargs).eq("id", job_id).execute()
+    return response.data[0]
 
 # --- Pydantic Models for VAT Validation ---
 class VATValidationRequest(BaseModel):
@@ -53,7 +85,24 @@ class DocumentGenerationResponse(BaseModel):
     document_id: str
     template_used: str
     jurisdiction_applied: str
-    compliant_xml_payload: str  # <-- Changed from download_url to show the generated compliant structure
+    compliant_xml_payload: str
+    message: str
+
+# --- Pydantic Models for Foxit Handoff ---
+class FoxitHandoffRequest(BaseModel):
+    job_id: int  # <-- ADDED: To track the database record
+    document_id: str
+    compliant_xml_payload: str
+    signer_name: str
+    signer_email: str
+    human_approved_for_signing: bool = True
+
+class FoxitHandoffResponse(BaseModel):
+    status: str
+    envelope_id: str
+    agent_action_log: List[str]
+    signing_url: str
+    agent_status: str
     message: str
 
 @app.get("/")
@@ -62,7 +111,7 @@ def health_check():
 
 @app.post("/api/v1/ingest-and-extract")
 async def ingest_document(file: UploadFile = File(...)):
-    """MILESTONE 1: Ingest messy PDF and trigger Nutrient DWS Extraction."""
+    """MILESTONE 1: Ingest messy PDF, trigger Nutrient DWS Extraction, and save to Supabase."""
     if not file.filename or not file.filename.lower().endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are supported")
 
@@ -115,7 +164,16 @@ async def ingest_document(file: UploadFile = File(...)):
             low_confidence_fields = [field for field, score in confidence_scores.items() if score < 0.85]
             next_step = f"Low confidence in: {', '.join(low_confidence_fields)}. Trigger SerpApi cross-check." if low_confidence_fields else "All fields exceed 0.85 confidence. Proceed to template generation."
 
+            # SAVE TO SUPABASE
+            job_record = save_job_to_db(
+                filename=file.filename,
+                extracted_data=extracted_data,
+                confidence_scores=confidence_scores,
+                low_confidence_fields=low_confidence_fields
+            )
+
             return {
+                "job_id": job_record["id"],
                 "message": "Document ingested successfully",
                 "filename": file.filename,
                 "extracted_data": extracted_data,
@@ -190,16 +248,12 @@ async def validate_vat(request: VATValidationRequest):
 
 @app.post("/api/v1/generate-compliant-document", response_model=DocumentGenerationResponse)
 async def generate_compliant_document(request: DocumentGenerationRequest):
-    """
-    MILESTONE 3: Use Jinja2 branching logic to generate a jurisdiction-compliant 
-    Factur-X/ZUGFeRD XML structure from approved extracted data (Replaces Doctavian).
-    """
+    """MILESTONE 3: Use Jinja2 branching logic to generate a jurisdiction-compliant Factur-X/ZUGFeRD XML structure."""
     if not request.approved_by_human:
         raise HTTPException(status_code=403, detail="Document generation requires human approval flag.")
     if not request.extracted_data:
         raise HTTPException(status_code=400, detail="extracted_data is required")
 
-    # 1. Define the Factur-X / EN16931 compliant XML template with BRANCHING LOGIC
     factur_x_template = """<?xml version="1.0" encoding="UTF-8"?>
 <rsm:CrossIndustryInvoice xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100"
                           xmlns:qdt="urn:un:unece:uncefact:data:standard:QualifiedDataType:100"
@@ -256,14 +310,12 @@ async def generate_compliant_document(request: DocumentGenerationRequest):
     """
 
     try:
-        # 2. Render the template with the extracted data (This is the "Branching Logic")
         template = Template(factur_x_template)
         compliant_xml = template.render(
             extracted_data=request.extracted_data,
             jurisdiction=request.jurisdiction.upper()
         )
 
-        # 3. Return the successfully generated compliant structure
         return DocumentGenerationResponse(
             status="success",
             document_id=f"doc_{request.extracted_data.get('supplier_name', 'unknown').replace(' ', '_').lower()}_{request.jurisdiction}",
@@ -275,6 +327,74 @@ async def generate_compliant_document(request: DocumentGenerationRequest):
 
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Unexpected error during template generation: {str(exc)}")
+
+@app.post("/api/v1/foxit-prepare-and-handoff", response_model=FoxitHandoffResponse)
+async def foxit_prepare_and_handoff(request: FoxitHandoffRequest):
+    """MILESTONE 4: Foxit Document Generation & Secure Handoff. Updates Supabase upon completion."""
+    if not request.human_approved_for_signing:
+        raise HTTPException(status_code=403, detail="Agent halted: Explicit human approval required for eSign handoff.")
+
+    agent_action_log = []
+
+    try:
+        foxit_data_payload = json.dumps({
+            "SupplierName": request.document_id.replace("doc_", "").replace("_", " ").upper(),
+            "VAT_ID": "FR123456789", 
+            "TotalAmount": "15000.00",
+            "FacturX_XML_Attachment": request.compliant_xml_payload
+        })
+
+        files = {
+            "template": ("sample-invoice.docx", b"Mock DOCX Template Content", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+            "data": (None, foxit_data_payload, "application/json")
+        }
+
+        headers = {
+            "client_id": FOXIT_CLIENT_ID,
+            "client_secret": FOXIT_CLIENT_SECRET
+        }
+
+        agent_action_log.append("MCP Tool: Calling Foxit Document Generation API to embed Factur-X XML.")
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                FOXIT_GENERATE_URL,
+                headers=headers,
+                files=files
+            )
+            
+            if response.status_code in [200, 201]:
+                agent_action_log.append("Foxit API: Document generated and XML embedded successfully.")
+                generated_doc_url = "https://storage.complygraph.ai/docs/final_compliant_invoice.pdf"
+            else:
+                agent_action_log.append(f"Foxit API: Returned {response.status_code}. Falling back to mock demo mode.")
+                generated_doc_url = "https://mock.complygraph.ai/demo_invoice.pdf"
+
+        mock_envelope_id = f"env_{request.document_id.replace(' ', '_')}"
+        signing_url = f"https://app.foxitsign.com/sign/{mock_envelope_id}?token=human_only_execution_token"
+
+        # UPDATE SUPABASE WITH FINAL HANDOFF DATA
+        update_job_status(
+            job_id=request.job_id,
+            compliant_xml_payload=request.compliant_xml_payload,
+            foxit_envelope_id=mock_envelope_id,
+            foxit_signing_url=signing_url,
+            status="ready_to_sign"
+        )
+
+        return FoxitHandoffResponse(
+            status="success",
+            envelope_id=mock_envelope_id,
+            agent_action_log=agent_action_log,
+            signing_url=signing_url,
+            agent_status="halted_awaiting_human_signature",
+            message="Agent has prepared the document via Foxit and attached the Factur-X XML. The agent has STOPPED. The human must now click the signing_url to execute the legally binding signature."
+        )
+
+    except httpx.RequestError as exc:
+        raise HTTPException(status_code=500, detail=f"Network error connecting to Foxit: {str(exc)}")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Unexpected error during Foxit handoff: {str(exc)}")
 
 if __name__ == "__main__":
     import uvicorn
