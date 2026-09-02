@@ -3,7 +3,7 @@
 
 ComplyGraph AI is an agentic pipeline that transforms messy supplier invoices into jurisdiction-compliant e-invoices (Factur-X/ZUGFeRD) and securely hands them off for human signature. Built to solve the upcoming 2026 EU e-invoicing mandates, it combines intelligent document extraction, live regulatory validation, and secure human-in-the-loop (HITL) handoffs.
 
-![ComplyGraph Dashboard](sample-docs/ComplyGraph_AI_Dashboard.png)
+![ComplyGraph Dashboard](pictures/comply_graph_dashboard.png)
 
 ---
 
@@ -82,7 +82,6 @@ graph TD
 | **Nutrient** | Intelligent Document Processing | Extracts messy PDFs into structured JSON with granular confidence scores. |
 | **SerpApi** | Live Data Enrichment | Validates low-confidence VAT IDs against live EU web registries. |
 | **Foxit** | Secure Agent Handoff | Agent prepares the envelope via API but **halts before signing**, preserving human legal agency. |
-| **Supabase** | State Management | Tracks the job lifecycle from `pending` → `extracted` → `under_review` → `ready_to_sign`. |
 
 ---
 
