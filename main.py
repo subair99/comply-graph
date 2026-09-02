@@ -417,7 +417,7 @@ async def foxit_prepare_and_handoff(request: FoxitHandoffRequest):
                 agent_action_log.append(f"Foxit eSign API: Envelope created successfully! Folder ID: {folder_id}")
                 
                 # Since sendNow=True, Foxit emails the signer. We provide a generic dashboard link for the demo UI.
-                signing_url = "https://app.foxitsign.com/login"
+                signing_url = "https://www.foxit.com/api/esign-api/"
                 
                 # 3. Update Supabase with the real envelope ID
                 update_job_status(

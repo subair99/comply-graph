@@ -18,7 +18,50 @@ ComplyGraph AI is an agentic pipeline that transforms messy supplier invoices in
 
 ## Project Structure
 
-Here is the complete project structure for your **ComplyGraph AI** application, organized by the backend and frontend we built. 
+Here is the complete project structure for your **ComplyGraph AI** application, organized by the backend and frontend we built.
+
+
+comply-graph/                    # Root Directory
+│
+├── .env                         # CRITICAL: Make sure this is in .gitignore!
+├── .env.example                 # Safe template for judges to copy
+├── .gitignore                   # Root gitignore
+├── .python-version              # Python version lock
+├── LICENSE                      # MIT License
+├── main.py                      # FastAPI Backend (Orchestrator & Supabase logic)
+├── pyproject.toml               # Python dependencies (uv)
+├── README.md                    # Main project README for judges
+├── requirements.txt             # Fallback Python dependencies
+├── uv.lock                      # Lockfile for uv
+│
+├── sample-docs/                 # Test files for the demo
+│   └── messy_supplier_invoice.pdf
+│
+└── comply-graph-ui/             # Next.js Frontend
+    ├── .gitignore
+    ├── AGENTS.md                # (AI assistant config)
+    ├── CLAUDE.md                # (AI assistant config)
+    ├── eslint.config.mjs
+    ├── next-env.d.ts
+    ├── next.config.ts
+    ├── package-lock.json
+    ├── package.json
+    ├── postcss.config.js
+    ├── postcss.config.mjs
+    ├── README.md                # (Frontend specific readme, optional)
+    ├── tailwind.config.js
+    ├── tsconfig.json
+    │
+    ├── pictures/                # Screenshots for your README
+    │   └── comply_graph_dashboard.png
+    │
+    ├── public/                  # Static assets
+    │
+    └── src/
+        └── app/
+            ├── globals.css      # Tailwind directives
+            ├── layout.tsx       # Root layout & metadata
+            └── page.tsx         # Main Dashboard UI
 
 ```text
 comply-graph-project/
@@ -26,13 +69,13 @@ comply-graph-project/
 ├── .env                         # API keys and Supabase credentials (DO NOT COMMIT to GitHub)
 ├── .gitignore                   # Rules for virtual environments, temp files, and secrets
 ├── README.md                    # Professional project documentation for judges
-├── comply-graph/                # 🐍 Python FastAPI Backend
+├── comply-graph/                # Python FastAPI Backend
 │   ├── main.py                  # Core orchestration, 4 API endpoints, Jinja2 logic, and Supabase integration
 │   ├── pyproject.toml           # Python dependencies (managed via uv)
 │   └── sample-docs/             # Test files for the demo
 │       └── messy_supplier_invoice.pdf
 │
-└── comply-graph-ui/             # ⚛️ Next.js Frontend
+└── comply-graph-ui/             # Next.js Frontend
     ├── package.json             # Node dependencies (Next.js, React, Lucide icons)
     ├── tailwind.config.js       # Tailwind CSS v3 configuration
     ├── postcss.config.js        # PostCSS configuration for Tailwind
@@ -85,7 +128,7 @@ graph TD
 
 ---
 
-## ⚡ Quick Start Guide
+## Quick Start Guide
 
 ### 1. Prerequisites
 - Python 3.10+ and `uv` (or `pip`)
