@@ -24,8 +24,8 @@ Here is the complete project structure for your **ComplyGraph AI** application, 
 comply-graph-project/
 │
 ├── .env                         # API keys and Supabase credentials (DO NOT COMMIT to GitHub)
+├── .gitignore                   # Rules for virtual environments, temp files, and secrets
 ├── README.md                    # Professional project documentation for judges
-│
 ├── comply-graph/                # 🐍 Python FastAPI Backend
 │   ├── main.py                  # Core orchestration, 4 API endpoints, Jinja2 logic, and Supabase integration
 │   ├── pyproject.toml           # Python dependencies (managed via uv)
@@ -101,15 +101,15 @@ git clone https://github.com/your-username/comply-graph.git
 cd comply-graph
 
 # Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+uv init --no-readme --vcs none
+cd comply-graph
 
 # Install dependencies
-pip install fastapi uvicorn httpx python-dotenv jinja2 supabase python-multipart
+uv add fastapi uvicorn httpx python-dotenv python-multipart jinja2 supabase
 
 # Configure environment variables
 cp .env.example .env
-# Edit .env and add your API keys (DWS_EXTRACTION_API_KEY, SERPAPI_API_KEY, SUPABASE_URL, SUPABASE_KEY, FOXIT_CLIENT_ID, FOXIT_CLIENT_SECRET)
+# Edit .env and add your API keys (DWS_EXTRACTION_API_KEY, SERPAPI_API_KEY, SUPABASE_URL, SUPABASE_KEY, FOXIT_CLIENT_ID, FOXIT_CLIENT_SECRET, FOXIT_GENERATE_URL)
 
 # Run the backend server
 uvicorn main:app --reload --port 8000
@@ -117,7 +117,15 @@ uvicorn main:app --reload --port 8000
 
 ### 3. Frontend Setup (Next.js)
 ```bash
+# Create a new Next.js app with TypeScript and Tailwind CSS
+npx create-next-app@latest comply-graph-ui --typescript --tailwind --eslint --app --src-dir --no-import-alias
+
+# Change directory
 cd comply-graph-ui
+
+# Install Lucide React and tailwindcss
+npm install lucide-react
+npm install -D tailwindcss@3.4.1 postcss autoprefixer # version is more stable now
 
 # Install dependencies
 npm install
@@ -169,7 +177,6 @@ curl -X POST 'http://127.0.0.1:8000/api/v1/foxit-prepare-and-handoff' \
 ## Demo Video
 
 [![Watch the Demo Video](https://via.placeholder.com/600x300.png?text=Click+to+Watch+Demo)](https://www.youtube.com/watch?v=YOUR_VIDEO_ID)
-*(Replace with your actual Loom/YouTube link)*
 
 ---
 
