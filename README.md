@@ -207,4 +207,9 @@ curl -X POST 'http://127.0.0.1:8000/api/v1/foxit-prepare-and-handoff' \
 ---
 
 ##  License
-MIT License. Built for the 2026 API & Cloud AI Hackathon.
+
+MIT License.  
+
+Built for the 2026 API & Cloud AI Hackathon.
+
+---
