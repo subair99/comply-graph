@@ -20,7 +20,7 @@ ComplyGraph AI is an agentic pipeline that transforms messy supplier invoices in
 
 Here is the complete project structure for your **ComplyGraph AI** application, organized by the backend and frontend we built.
 
-
+```text
 comply-graph/                    # Root Directory
 │
 ├── .env                         # CRITICAL: Make sure this is in .gitignore!
@@ -37,53 +37,37 @@ comply-graph/                    # Root Directory
 ├── sample-docs/                 # Test files for the demo
 │   └── messy_supplier_invoice.pdf
 │
-└── comply-graph-ui/             # Next.js Frontend
-    ├── .gitignore
-    ├── AGENTS.md                # (AI assistant config)
-    ├── CLAUDE.md                # (AI assistant config)
-    ├── eslint.config.mjs
-    ├── next-env.d.ts
-    ├── next.config.ts
-    ├── package-lock.json
-    ├── package.json
-    ├── postcss.config.js
-    ├── postcss.config.mjs
-    ├── README.md                # (Frontend specific readme, optional)
-    ├── tailwind.config.js
-    ├── tsconfig.json
-    │
-    ├── pictures/                # Screenshots for your README
-    │   └── comply_graph_dashboard.png
-    │
-    ├── public/                  # Static assets
-    │
-    └── src/
-        └── app/
-            ├── globals.css      # Tailwind directives
-            ├── layout.tsx       # Root layout & metadata
-            └── page.tsx         # Main Dashboard UI
-
-```text
-comply-graph-project/
+├── comply-graph-ui/             # Next.js Frontend
+│   ├── .gitignore
+│   ├── AGENTS.md                # (AI assistant config)
+│   ├── CLAUDE.md                # (AI assistant config)
+│   ├── eslint.config.mjs
+│   ├── next-env.d.ts
+│   ├── next.config.ts
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── postcss.config.js
+│   ├── postcss.config.mjs
+│   ├── README.md                # (Frontend specific readme, optional)
+│   ├── tailwind.config.js
+│   ├── tsconfig.json
+│   │
+│   ├── pictures/                # Screenshots for your README
+│   │   └── comply_graph_dashboard.png
+│   │
+│   ├── public/                  # Static assets
+│   │
+│   └── src/
+│       └── app/
+│           ├── globals.css      # Tailwind directives
+│           ├── layout.tsx       # Root layout & metadata
+│           └── page.tsx         # Main Dashboard UI
 │
-├── .env                         # API keys and Supabase credentials (DO NOT COMMIT to GitHub)
-├── .gitignore                   # Rules for virtual environments, temp files, and secrets
-├── README.md                    # Professional project documentation for judges
-├── comply-graph/                # Python FastAPI Backend
-│   ├── main.py                  # Core orchestration, 4 API endpoints, Jinja2 logic, and Supabase integration
-│   ├── pyproject.toml           # Python dependencies (managed via uv)
-│   └── sample-docs/             # Test files for the demo
-│       └── messy_supplier_invoice.pdf
-│
-└── comply-graph-ui/             # Next.js Frontend
-    ├── package.json             # Node dependencies (Next.js, React, Lucide icons)
-    ├── tailwind.config.js       # Tailwind CSS v3 configuration
-    ├── postcss.config.js        # PostCSS configuration for Tailwind
-    └── src/
-        └── app/
-            ├── layout.tsx       # Root layout with metadata and Inter font
-            ├── page.tsx         # Main dashboard UI, state management, and API fetch logic
-            └── globals.css      # Tailwind directives (@tailwind base, etc.)
+└── pictures/                    # Pictures of the UI in action
+    ├── ComplyGraphDashboard-1.png
+    ├── ComplyGraphDashboard-2.png      
+    ├── ComplyGraphDashboard-3.png
+    └── ComplyGraphDashboard-4.png
 ```
 
 ---
@@ -131,7 +115,7 @@ graph TD
 ## Quick Start Guide
 
 ### 1. Prerequisites
-- Python 3.10+ and `uv` (or `pip`)
+- Python 3.10+ and `uv`
 - Node.js 18+ and `npm`
 - A Supabase project
 - API Keys for Nutrient, SerpApi, and Foxit
@@ -218,7 +202,7 @@ curl -X POST 'http://127.0.0.1:8000/api/v1/foxit-prepare-and-handoff' \
 
 ## Demo Video
 
-[![Watch the Demo Video](https://via.placeholder.com/600x300.png?text=Click+to+Watch+Demo)](https://www.youtube.com/watch?v=YOUR_VIDEO_ID)
+[![Watch the Demo Video](https://youtu.be/x2_reUGsFzo/600x300.png?text=Click+to+Watch+Demo)](https://www.youtube.com/watch?v=YOUR_VIDEO_ID)
 
 ---
 
