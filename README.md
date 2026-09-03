@@ -202,7 +202,9 @@ curl -X POST 'http://127.0.0.1:8000/api/v1/foxit-prepare-and-handoff' \
 
 ## Demo Video
 
-[Watch the Demo Video](https://www.youtube.com/watch?v=x2_reUGsFzo)
+Watch the Demo Video
+
+> *https://youtu.be/x2_reUGsFzo?si=JSUYzvFBO3Tul-ee*
 
 ---
 
